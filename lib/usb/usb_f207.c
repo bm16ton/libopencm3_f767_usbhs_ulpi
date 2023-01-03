@@ -23,11 +23,9 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/usb/usbd.h>
 #include <libopencm3/usb/dwc/otg_hs.h>
-#include <libopencm3/usb/dwc/dwc_otg.h>
 #include "usb_private.h"
 #include "usb_dwc_common.h"
 
-#define REBASE(REG, ...)	REG(USB_OTG_HS_BASE, ##__VA_ARGS__)
 /* Receive FIFO size in 32-bit words. */
 #define RX_FIFO_SIZE 512
 
@@ -58,47 +56,34 @@ static usbd_device *stm32f207_usbd_init(void)
 
 rcc_periph_clock_enable(RCC_OTGHSULPI);
 	rcc_periph_clock_enable(RCC_OTGHS);
-//	OTG_HS_GINTSTS = OTG_GINTSTS_MMIS;
+
 
     OTG_HS_GCCFG &= ~OTG_GCCFG_PWRDWN;
 
 	OTG_HS_GUSBCFG &= ~OTG_GUSBCFG_PHYSEL;
-	
-	REBASE(DWC_OTG_DCFG) = (REBASE(DWC_OTG_DCFG) & ~DWC_OTG_DCFG_DSPD_MASK) |
-										DWC_OTG_DCFG_DSPD_HIGH;
 										
-	REBASE(DWC_OTG_GUSBCFG) |= DWC_OTG_GUSBCFG_ULPIEVBUSD;
+    OTG_HS_DCFG &= ~OTG_DCFG_DSPD |= 0x0;
 
+    OTG_HS_GUSBCFG  |= OTG_GUSBCFG_ULPIEVBUSD;
 
-	/* Wait for AHB idle. */
-//	while (!(OTG_HS_GRSTCTL & OTG_GRSTCTL_AHBIDL));
-	/* Do core soft reset. */
-//	OTG_HS_GRSTCTL |= OTG_GRSTCTL_CSRST;
-//	while (OTG_HS_GRSTCTL & OTG_GRSTCTL_CSRST);
-OTG_HS_GCCFG |= OTG_GCCFG_VBDEN;
+    OTG_HS_GCCFG |= OTG_GCCFG_VBDEN;
 	/* Force peripheral only mode. */
 	OTG_HS_GUSBCFG |= OTG_GUSBCFG_FDMOD | OTG_GUSBCFG_TRDT_MASK;
 
-	/* Full speed device. */
-//	OTG_HS_DCFG |= OTG_DCFG_DSPD;
+    while (!(OTG_HS_GRSTCTL & OTG_GRSTCTL_AHBIDL));
 
-	/* Restart the PHY clock. */
-//	OTG_HS_PCGCCTL = 0;
-while (!(REBASE(DWC_OTG_GRSTCTL) & DWC_OTG_GRSTCTL_AHBIDL));
-	REBASE(DWC_OTG_GRSTCTL) |= DWC_OTG_GRSTCTL_CSRST;
-	while (REBASE(DWC_OTG_GRSTCTL) & DWC_OTG_GRSTCTL_CSRST);
+    OTG_HS_GRSTCTL |= OTG_GRSTCTL_CSRST;
 
+    while (OTG_HS_GRSTCTL & OTG_GRSTCTL_CSRST);
 	/* Clear SDIS because newer version have set by default */
-	REBASE(DWC_OTG_DCTL) &= ~DWC_OTG_DCTL_SDIS;
-
+    OTG_HS_DCTL &= ~OTG_DCTL_SDIS;
 	/* Force peripheral only mode. */
-	REBASE(DWC_OTG_GUSBCFG) |= DWC_OTG_GUSBCFG_FDMOD | DWC_OTG_GUSBCFG_TRDT_MASK;
-
-	REBASE(DWC_OTG_GINTSTS) = DWC_OTG_GINTSTS_MMIS;
-
+    OTG_HS_GUSBCFG |= OTG_GUSBCFG_FDMOD | OTG_GUSBCFG_TRDT_MASK;
+    
+    OTG_HS_GINTSTS |= OTG_GINTSTS_MMIS;
 	/* Restart the PHY clock. */
-	REBASE(DWC_OTG_PCGCCTL) = 0;
-
+    OTG_HS_PCGCCTL |= 0;
+    
 	OTG_HS_GRXFSIZ = stm32f207_usb_driver.rx_fifo_size;
 	usbd_dev.fifo_mem_top = stm32f207_usb_driver.rx_fifo_size;
 
