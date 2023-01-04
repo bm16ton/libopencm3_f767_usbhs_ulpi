@@ -276,6 +276,7 @@
 
 /* OTG Device OUT Endpoint Common Interrupt Mask Register (OTG_DOEPMSK) */
 /* Bits 31:10 - Reserved */
+#define OTG_DOEPMSK_BBLERR  (1 << 12)
 #define OTG_DOEPMSK_BOIM	(1 << 9)
 #define OTG_DOEPMSK_OPEM	(1 << 8)
 /* Bit 7 - Reserved */
